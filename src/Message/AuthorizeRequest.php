@@ -47,6 +47,16 @@ use Omnipay\Common\Message\AbstractRequest;
  *     echo "Transaction reference = " . $sale_id . "\n";
  * }
  * </code>
+ *
+ * ## Secure Token + Transparent Redirect Work Flow
+ *
+ * To avoid PCI compliance auditing on your server, you can use
+ * Payflow's secure token and transparent redirect. The work flow
+ * for authorization is similar to a sale with a divided data flow
+ * for the card and non-card data:
+ *
+ * @see https://developer.paypal.com/docs/classic/payflow/integration-guide/#pci-compliance-without-hosted-pages---transparent-redirect
+ *
  */
 class AuthorizeRequest extends AbstractRequest
 {
@@ -188,14 +198,44 @@ class AuthorizeRequest extends AbstractRequest
         return $this->setParameter('orderid', $value);
     }
 
+    public function getPoNum()
+    {
+        return $this->getParameter('ponum');
+    }
+
     public function setPoNum($value)
     {
         return $this->setParameter('ponum', $value);
     }
 
-    public function getPoNum()
+    public function getSecureTokenId()
     {
-        return $this->getParameter('ponum');
+        return $this->getParameter('securetokenid');
+    }
+
+    public function setSecureTokenId($value)
+    {
+        return $this->setParameter('securetokenid', $value);
+    }
+
+    public function getCreateSecureToken()
+    {
+        return $this->getParameter('createsecuretoken');
+    }
+
+    public function setCreateSecureToken($value)
+    {
+        return $this->setParameter('createsecuretoken', $value);
+    }
+
+    public function getSilentTran()
+    {
+        return $this->getParameter('silenttran');
+    }
+
+    public function setSilentTran($value)
+    {
+        return $this->setParameter('silenttran', $value);
     }
 
     /**
@@ -237,6 +277,7 @@ class AuthorizeRequest extends AbstractRequest
         $this->validate('amount');
         $data = $this->getBaseData();
 
+        /* what if we're wanting a secure ref? */
         if ($this->getCardReference()) {
             $data['ORIGID'] = $this->getCardReference();
             if ($this->getCard()) {
@@ -244,11 +285,21 @@ class AuthorizeRequest extends AbstractRequest
             }
         } else {
             $this->validate('card');
-            $this->getCard()->validate();
 
-            $data['ACCT'] = $this->getCard()->getNumber();
-            $data['EXPDATE'] = $this->getCard()->getExpiryDate('my');
-            $data['CVV2'] = $this->getCard()->getCvv();
+            if ($this->getSecureTokenId() && !is_null($this->getCreateSecureToken())) {
+                $this->validate('securetokenid', 'createsecuretoken', 'silenttran');
+
+                $data['SECURETOKENID'] = $this->getSecureTokenId();
+                $data['CREATESECURETOKEN'] = $this->getCreateSecureToken() ? 'Y' : 'N';
+                $data['SILENTTRAN'] = $this->getSilentTran() ? 'TRUE' : 'FALSE';
+            } else {
+                $this->getCard()->validate();
+
+                $data['ACCT'] = $this->getCard()->getNumber();
+                $data['EXPDATE'] = $this->getCard()->getExpiryDate('my');
+                $data['CVV2'] = $this->getCard()->getCvv();
+            }
+
             $data['BILLTOFIRSTNAME'] = $this->getCard()->getFirstName();
             $data['BILLTOLASTNAME'] = $this->getCard()->getLastName();
             $data['BILLTOSTREET'] = $this->getCard()->getAddress1();
