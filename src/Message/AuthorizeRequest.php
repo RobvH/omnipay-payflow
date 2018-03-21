@@ -238,6 +238,26 @@ class AuthorizeRequest extends AbstractRequest
         return $this->setParameter('silenttran', $value);
     }
 
+    public function getReturnUrl()
+    {
+        return $this->getParameter('returnurl');
+    }
+
+    public function setReturnUrl($value)
+    {
+        return $this->setParameter('returnurl', $value);
+    }
+
+    public function getErrorUrl()
+    {
+        return $this->getParameter('errorurl');
+    }
+
+    public function setErrorUrl($value)
+    {
+        return $this->setParameter('errorurl', $value);
+    }
+
     /**
      * @deprecated
      */
@@ -287,11 +307,19 @@ class AuthorizeRequest extends AbstractRequest
             $this->validate('card');
 
             if ($this->getSecureTokenId() && !is_null($this->getCreateSecureToken())) {
-                $this->validate('securetokenid', 'createsecuretoken', 'silenttran');
+                $this->validate('securetokenid', 'createsecuretoken', 'silenttran', 'returnurl', 'errorurl');
 
                 $data['SECURETOKENID'] = $this->getSecureTokenId();
                 $data['CREATESECURETOKEN'] = $this->getCreateSecureToken() ? 'Y' : 'N';
                 $data['SILENTTRAN'] = $this->getSilentTran() ? 'TRUE' : 'FALSE';
+
+                if ($this->getReturnUrl()) {
+                    $data['RETURNURL'] = $this->getReturnUrl();
+                }
+
+                if ($this->getErrorUrl()) {
+                    $data['ERRORURL'] = $this->getErrorUrl();
+                }
             } else {
                 $this->getCard()->validate();
 
