@@ -319,6 +319,8 @@ class AuthorizeRequest extends AbstractRequest
                     $data['ERRORURL'] = $this->getErrorUrl();
                 }
             } else {
+                $this->validate('card');
+
                 $this->getCard()->validate();
 
                 $data['ACCT'] = $this->getCard()->getNumber();
